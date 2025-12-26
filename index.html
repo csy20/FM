@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS112703: Financial Management Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Chart Container Styling per Requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px; /* Tailwind max-w-xl approx equivalent */
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px; /* Base height */
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+    <!-- Chosen Palette: Slate (Professional/Trust) & Emerald (Finance/Growth) -->
+    <!-- Application Structure Plan: Dashboard layout. Sidebar for Unit navigation allows quick switching. 
+         Main area updates dynamically. Right panel for "Quick Stats" or Formulas relevant to the active unit.
+         Rationale: Students need to jump between concepts (e.g., checking WACC while studying Capital Budgeting). -->
+    <!-- Visualization & Content Choices:
+         - Unit 1: Line Chart for Compound Interest (Visualizing "growth" is key to TVM).
+         - Unit 2: Line Chart for Bond Price vs Rate (Visualizing inverse relationship).
+         - Unit 3: Doughnut Chart for WACC (Visualizing capital structure weights).
+         - Unit 4: Comparison Cards (Text-heavy but structured comparison of methods).
+         - Unit 5: Grid of interactive cards for 5Cs (Memorization aid).
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Top Header -->
+    <header class="bg-slate-900 text-white p-4 shadow-lg flex-none z-20">
+        <div class="container mx-auto flex justify-between items-center">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold tracking-tight text-emerald-400">FinMan Explorer</h1>
+                <p class="text-xs md:text-sm text-slate-400">CS112703 Exam Prep • Credits: 2 • Marks: 125</p>
+            </div>
+            <div class="hidden md:block">
+                <span class="bg-emerald-900 text-emerald-300 text-xs px-2 py-1 rounded border border-emerald-700">Exam Mode: Active</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- Sidebar Navigation -->
+        <nav class="w-20 md:w-64 bg-white border-r border-slate-200 flex-none flex flex-col shadow-inner overflow-y-auto">
+            <div class="p-4 border-b border-slate-100 hidden md:block">
+                <h3 class="font-semibold text-slate-500 uppercase text-xs tracking-wider">Course Units</h3>
+            </div>
+            <ul class="space-y-1 p-2">
+                <li>
+                    <button onclick="loadUnit(1)" id="nav-1" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center group active-nav">
+                        <span class="text-xl mr-0 md:mr-3">⏱️</span>
+                        <span class="hidden md:block text-sm font-medium">Unit 1: Intro & TVM</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="loadUnit(2)" id="nav-2" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center group">
+                        <span class="text-xl mr-0 md:mr-3">📊</span>
+                        <span class="hidden md:block text-sm font-medium">Unit 2: Valuation</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="loadUnit(3)" id="nav-3" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center group">
+                        <span class="text-xl mr-0 md:mr-3">⚖️</span>
+                        <span class="hidden md:block text-sm font-medium">Unit 3: Leverage</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="loadUnit(4)" id="nav-4" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center group">
+                        <span class="text-xl mr-0 md:mr-3">🏗️</span>
+                        <span class="hidden md:block text-sm font-medium">Unit 4: Cap Budgeting</span>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="loadUnit(5)" id="nav-5" class="nav-btn w-full text-left px-4 py-3 rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition flex items-center group">
+                        <span class="text-xl mr-0 md:mr-3">💸</span>
+                        <span class="hidden md:block text-sm font-medium">Unit 5: Cash Mgmt</span>
+                    </button>
+                </li>
+            </ul>
+            
+            <div class="mt-auto p-4 border-t border-slate-100 bg-slate-50">
+                <div class="text-xs text-slate-500 text-center">
+                    <span class="block font-bold">Exam Tip:</span>
+                    "Wealth Maximization > Profit Maximization"
+                </div>
+            </div>
+        </nav>
+
+        <!-- Dynamic Content Area -->
+        <main class="flex-1 overflow-y-auto bg-slate-50 relative p-4 md:p-8" id="main-content">
+            <!-- Content injected via JS -->
+        </main>
+
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // State
+        let currentChart = null;
+        let currentUnitId = 1;
+
+        // Data Store (Content from Source Report)
+        const unitData = {
+            1: {
+                title: "Introduction & Time Value of Money",
+                intro: "The foundation of finance rests on the principle that a dollar today is worth more than a dollar tomorrow. This unit explores the core objective of a firm—Wealth Maximization—and the mathematical tools used to compare cash flows across different time periods.",
+                keyConcepts: [
+                    { title: "Profit vs. Wealth Max", desc: "Profit Max ignores time and risk. Wealth Max (Shareholder Value) is superior as it considers long-term health, timing, and risk." },
+                    { title: "Time Value Factors", desc: "Inflation, Risk, and Opportunity Cost create the time value of money." },
+                    { title: "Compound Interest", desc: "The '8th wonder of the world'. Interest on principal + interest." }
+                ],
+                formulas: [
+                    { name: "Future Value (FV)", eq: "FV = PV × (1+r)ⁿ", example: "$1k at 10% for 5yrs: 1000×(1.1)⁵ = $1610" },
+                    { name: "Present Value (PV)", eq: "PV = FV / (1+r)ⁿ", example: "Need $1610 in 5yrs @10%? Dep $1000 today." }
+                ],
+                chartConfig: {
+                    type: 'line',
+                    title: 'The Power of Compounding: 10 Years',
+                    labels: ['Yr 0', 'Yr 2', 'Yr 4', 'Yr 6', 'Yr 8', 'Yr 10'],
+                    datasets: [
+                        {
+                            label: 'Simple Interest (10%)',
+                            data: [1000, 1200, 1400, 1600, 1800, 2000],
+                            borderColor: '#94a3b8', // Slate 400
+                            borderDash: [5, 5],
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Compound Interest (10%)',
+                            data: [1000, 1210, 1464, 1771, 2143, 2593],
+                            borderColor: '#10b981', // Emerald 500
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                }
+            },
+            2: {
+                title: "Valuation of Securities & Risk",
+                intro: "Valuation is the art of determining the fair price of an asset based on its future cash flows. This unit covers how to price bonds and stocks, and quantifies the relationship between risk and return using models like CAPM.",
+                keyConcepts: [
+                    { title: "Bond Valuation", desc: "Inverse relationship: Interest rates up ⬆️ = Bond prices down ⬇️." },
+                    { title: "Common Stock", desc: "Valued using Dividend Discount Model. Dependent on growth (g) and cost of equity (Ke)." },
+                    { title: "CAPM", desc: "Calculates expected return based on Systematic Risk (Beta)." }
+                ],
+                formulas: [
+                    { name: "Gordon Growth", eq: "P₀ = D₁ / (kₑ - g)", example: "Div=$2, Ke=10%, g=5%. P = 2/(0.1-0.05) = $40" },
+                    { name: "CAPM", eq: "E(R) = Rf + β(Rm - Rf)", example: "Rf=3%, β=1.2, Rm=8%. Ret = 3 + 1.2(5) = 9%" }
+                ],
+                chartConfig: {
+                    type: 'line',
+                    title: 'Bond Price vs. Market Interest Rate',
+                    labels: ['2%', '4%', '6%', '8%', '10%', '12%'],
+                    datasets: [
+                        {
+                            label: 'Bond Price ($)',
+                            data: [1200, 1100, 1000, 920, 850, 790], // Illustrative inverse curve
+                            borderColor: '#ef4444', // Red for inverse risk
+                            tension: 0.4,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#ef4444'
+                        }
+                    ]
+                }
+            },
+            3: {
+                title: "Leverage & Cost of Capital",
+                intro: "How a firm funds its operations matters. This unit analyzes Capital Structure—the mix of debt and equity. It explains how 'Leverage' acts as a magnifier for both returns and risks, and how to calculate the Weighted Average Cost of Capital (WACC).",
+                keyConcepts: [
+                    { title: "Operating Leverage", desc: "Impact of fixed operating costs (Rent/Salaries) on EBIT." },
+                    { title: "Financial Leverage", desc: "Impact of interest payments (Debt) on EPS." },
+                    { title: "WACC", desc: "The average rate a company pays to finance its assets. Used as the hurdle rate." }
+                ],
+                formulas: [
+                    { name: "Total Leverage", eq: "DTL = DOL × DFL", example: "DOL=2, DFL=1.5 -> DTL=3. (Sales -1% = EPS -3%)" },
+                    { name: "WACC", eq: "(We × Ke) + (Wd × Kd)", example: "60% Eq@10%, 40% Dbt@5% = 0.6(10)+0.4(5) = 8%" }
+                ],
+                chartConfig: {
+                    type: 'doughnut',
+                    title: 'WACC Components Example',
+                    labels: ['Equity Cost (High Risk/Cost)', 'Debt Cost (Low Risk/Tax Shield)'],
+                    datasets: [
+                        {
+                            data: [65, 35],
+                            backgroundColor: ['#3b82f6', '#f59e0b'], // Blue (Equity), Amber (Debt)
+                            hoverOffset: 4
+                        }
+                    ]
+                }
+            },
+            4: {
+                title: "Capital Budgeting & Working Capital",
+                intro: "Long-term decisions define the future; short-term decisions keep the lights on. This unit contrasts Capital Budgeting methods like NPV and IRR, and outlines strategies for managing Working Capital liquidity.",
+                keyConcepts: [
+                    { title: "NPV (Net Present Value)", desc: "The Gold Standard. Value added in today's dollars. Accept if > 0." },
+                    { title: "IRR", desc: "Break-even interest rate. Accept if > WACC. Trust NPV if they conflict." },
+                    { title: "Aggressive WC Strategy", desc: "Funding long-term assets with short-term debt. High Profit, High Risk." }
+                ],
+                formulas: [
+                    { name: "NPV", eq: "PV(In) - Init. Inv.", example: "PV($120) - Cost($100) = $20. Accept!" },
+                    { name: "Net Working Capital", eq: "CA - CL", example: "Assets($500) - Liab($300) = $200 NWC" }
+                ],
+                chartConfig: {
+                    type: 'bar',
+                    title: 'Project Comparison: NPV vs Payback',
+                    labels: ['Project A', 'Project B'],
+                    datasets: [
+                        {
+                            label: 'NPV ($ Thousands)',
+                            data: [150, 120],
+                            backgroundColor: '#10b981',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Payback Period (Years)',
+                            data: [4.5, 2.0], // Project B is faster but less value
+                            backgroundColor: '#64748b',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                }
+            },
+            5: {
+                title: "Cash & Receivables Management",
+                intro: "Cash is king, but idle cash earns nothing. This unit focuses on optimizing liquidity—balancing the safety of having cash against the opportunity cost of not investing it—and managing credit policies.",
+                keyConcepts: [
+                    { title: "Motives for Cash", desc: "Transaction (Bills), Precautionary (Emergency), Speculative (Opportunity)." },
+                    { title: "Float", desc: "Time gap between writing a check and clearing. Reduce collection float!" },
+                    { title: "Factoring", desc: "Selling receivables to a 3rd party for immediate cash (at a discount)." }
+                ],
+                formulas: [
+                    { name: "Lockbox System", eq: "↓ Float = ↑ Cash", example: "Save 2 days on $10k/day sales = $20k freed up." },
+                    { name: "Credit Terms", eq: "e.g., '2/10 net 30'", example: "Pay in 10 days for 2% off, or full in 30 days." }
+                ],
+                chartConfig: null // Special interactive HTML render for this unit
+            }
+        };
+
+        // UI Builder Functions
+        function loadUnit(id) {
+            currentUnitId = id;
+            const data = unitData[id];
+            const main = document.getElementById('main-content');
+
+            // Update Nav Styles
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-100', 'text-emerald-800', 'font-bold', 'active-nav');
+                btn.classList.add('text-slate-600');
+            });
+            const activeBtn = document.getElementById(`nav-${id}`);
+            activeBtn.classList.add('bg-emerald-100', 'text-emerald-800', 'font-bold', 'active-nav');
+            activeBtn.classList.remove('text-slate-600');
+
+            // Build HTML Content
+            let html = `
+                <div class="max-w-5xl mx-auto animate-fade-in space-y-8 pb-12">
+                    
+                    <!-- Header Section -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                        <div class="flex items-center space-x-3 mb-2">
+                            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">Unit ${id}</span>
+                            <h2 class="text-3xl font-bold text-slate-800">${data.title}</h2>
+                        </div>
+                        <p class="text-slate-600 leading-relaxed text-lg">${data.intro}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        
+                        <!-- Left Column: Concepts -->
+                        <div class="lg:col-span-2 space-y-6">
+                            
+                            <!-- Key Concepts Cards -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                ${data.keyConcepts.map(c => `
+                                    <div class="bg-white p-5 rounded-lg border border-slate-200 shadow-sm card-hover transition-all duration-300">
+                                        <h3 class="font-bold text-emerald-700 mb-2 flex items-center">
+                                            <span class="w-2 h-2 bg-emerald-500 rounded-full mr-2"></span>
+                                            ${c.title}
+                                        </h3>
+                                        <p class="text-sm text-slate-600">${c.desc}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <!-- Visualization Section -->
+                            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                                <h3 class="text-xl font-bold text-slate-800 mb-4 border-b border-slate-100 pb-2">Visual Analysis</h3>
+                                ${id === 5 ? renderUnit5Interactive() : `
+                                    <div class="chart-container">
+                                        <canvas id="mainChart"></canvas>
+                                    </div>
+                                    <p class="mt-4 text-sm text-slate-500 italic text-center">
+                                        ${getChartCaption(id)}
+                                    </p>
+                                `}
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Formulas & Extras -->
+                        <div class="space-y-6">
+                            <div class="bg-slate-800 text-white p-6 rounded-xl shadow-md">
+                                <h3 class="font-bold text-emerald-400 mb-4 uppercase tracking-wider text-sm border-b border-slate-700 pb-2">🧮 Exam Formulas</h3>
+                                <ul class="space-y-4">
+                                    ${data.formulas.map(f => `
+                                        <li>
+                                            <div class="text-xs text-slate-400 mb-1">${f.name}</div>
+                                            <div class="font-mono text-lg bg-slate-900 p-2 rounded border border-slate-700 text-center mb-1">${f.eq}</div>
+                                            <div class="text-xs text-emerald-400/80 italic border-l-2 border-emerald-500/30 pl-2">Ex: ${f.example}</div>
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+
+                            <div class="bg-emerald-50 p-6 rounded-xl border border-emerald-100">
+                                <h3 class="font-bold text-emerald-800 mb-2">Did you know?</h3>
+                                <p class="text-sm text-emerald-700">
+                                    ${getDidYouKnow(id)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            main.innerHTML = html;
+
+            // Initialize Chart if not Unit 5
+            if (id !== 5 && data.chartConfig) {
+                initChart(data.chartConfig, id);
+            }
+        }
+
+        // Helper: Chart Caption
+        function getChartCaption(id) {
+            switch(id) {
+                case 1: return "Notice how compound interest (green) accelerates away from simple interest (grey) over time.";
+                case 2: return "Bond Prices fall as Market Interest Rates rise. This 'See-Saw' effect is crucial for the exam.";
+                case 3: return "WACC is the weighted average. Debt is usually cheaper due to the tax shield.";
+                case 4: return "Project B pays back faster, but Project A adds more total value (NPV). Always trust NPV.";
+                default: return "";
+            }
+        }
+
+        // Helper: Did You Know Text
+        function getDidYouKnow(id) {
+            switch(id) {
+                case 1: return "Einstein reputedly called Compound Interest the 'Eighth Wonder of the World'.";
+                case 2: return "Beta measures risk relative to the market. A Beta of 1.0 means the stock moves exactly with the market.";
+                case 3: return "Debt is often cheaper than equity because interest payments are tax-deductible!";
+                case 4: return "NPV is considered the 'Gold Standard' because it accounts for the Time Value of Money, unlike Payback Period.";
+                case 5: return "The '5 Cs' are used by banks worldwide to decide if they should lend you money.";
+                default: return "";
+            }
+        }
+
+        // Special Renderer for Unit 5 (Interactive 5Cs)
+        function renderUnit5Interactive() {
+            return `
+                <div class="space-y-4">
+                    <p class="text-sm text-slate-500 mb-4">Click on any of the "5 Cs of Credit" to reveal what lenders look for:</p>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        ${['Character', 'Capacity', 'Capital', 'Collateral', 'Conditions'].map((c, idx) => `
+                            <button onclick="toggleCreditInfo(${idx})" class="p-3 bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-800 font-bold rounded border border-slate-200 transition text-center focus:outline-none focus:ring-2 ring-emerald-400">
+                                ${c}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div id="credit-info-box" class="bg-white p-4 rounded border border-slate-200 text-center min-h-[100px] flex items-center justify-center text-slate-500 italic">
+                        Select a 'C' above to see details.
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleCreditInfo(idx) {
+            const infos = [
+                "<strong>Character:</strong> The borrower's reputation and willingness to pay. (e.g., Credit History).",
+                "<strong>Capacity:</strong> Ability to repay the loan from operating cash flows.",
+                "<strong>Capital:</strong> The borrower's net worth (Assets - Liabilities). 'Skin in the game'.",
+                "<strong>Collateral:</strong> Assets pledged as security in case of default.",
+                "<strong>Conditions:</strong> External economic factors affecting the borrower's industry."
+            ];
+            const box = document.getElementById('credit-info-box');
+            box.innerHTML = infos[idx];
+            box.classList.remove('italic', 'text-slate-500');
+            box.classList.add('text-slate-800', 'bg-emerald-50');
+        }
+
+        // Chart Initialization
+        function initChart(config, id) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            
+            // Destroy previous chart to prevent overlay issues
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Custom Options for Scale
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false, // Critical for container fitting
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        padding: 10,
+                        cornerRadius: 4
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: '#f1f5f9' } // light grid
+                    },
+                    x: {
+                        grid: { display: false }
+                    }
+                }
+            };
+            
+            // Special scale for Unit 4 (Dual Axis)
+            if (id === 4) {
+                options.scales.y1 = {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: { drawOnChartArea: false }
+                };
+            }
+
+            currentChart = new Chart(ctx, {
+                type: config.type,
+                data: {
+                    labels: config.labels,
+                    datasets: config.datasets
+                },
+                options: options
+            });
+        }
+
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUnit(1);
+        });
+
+    </script>
+</body>
+</html>
